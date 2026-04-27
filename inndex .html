@@ -1,0 +1,69 @@
+function renderCharts(){
+  const gc='rgba(255,255,255,0.05)', tc='rgba(255,255,255,0.3)';
+  const sorted=[...trades].sort((a,b)=>(a.date||'')>(b.date||'')?1:-1);
+
+  // EQUITY CURVE
+  let eq=CAP;
+  const eqData=[CAP];
+  const eqLabels=['Start'];
+  sorted.forEach((t,i)=>{
+    eq+=parseFloat(t.pnl)||0;
+    eqData.push(parseFloat(eq.toFixed(2)));
+    eqLabels.push(t.pair||'T'+(i+1));
+  });
+
+  // FIX: target line always same length as equity, no null padding
+  const targetLine=eqData.map((_,i)=>
+    parseFloat((CAP+(TARGET*(i/21))).toFixed(2))
+  );
+
+  if(chEquity){
+    chEquity.data.labels=eqLabels;
+    chEquity.data.datasets[0].data=eqData;
+    chEquity.data.datasets[1].data=targetLine;
+    chEquity.update('none');
+  } else {
+    chEquity=new Chart(document.getElementById('ch-equity'),{
+      type:'line',
+      data:{labels:eqLabels,datasets:[
+        {
+          label:'Equity',
+          data:eqData,
+          borderColor:'#f59e0b',
+          borderWidth:2,
+          pointRadius:4,
+          pointBackgroundColor:'#f59e0b',
+          pointHoverRadius:6,
+          fill:true,
+          backgroundColor:'rgba(245,158,11,0.06)',
+          tension:0.35
+        },
+        {
+          label:'Target $2,520',
+          data:targetLine,
+          borderColor:'#22c55e',
+          borderWidth:1.5,
+          borderDash:[5,4],
+          pointRadius:0,
+          fill:false,
+          tension:0
+        }
+      ]},
+      options:{
+        responsive:true,
+        maintainAspectRatio:false,
+        plugins:{
+          legend:{display:true,labels:{color:tc,font:{size:10},boxWidth:10,usePointStyle:true}},
+          tooltip:{
+            callbacks:{
+              label:c=>c.dataset.label+': $'+parseFloat(c.raw).toFixed(2)
+            }
+          }
+        },
+        scales:{
+          x:{ticks:{color:tc,font:{size:9},maxRotation:0,autoSkip:true,maxTicksLimit:12},grid:{color:gc}},
+          y:{ticks:{color:tc,font:{size:9},callback:v=>'$'+v.toFixed(0)},grid:{color:gc}}
+        }
+      }
+    });
+  }
